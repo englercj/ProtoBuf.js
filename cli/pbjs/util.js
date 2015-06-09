@@ -30,20 +30,22 @@ var util = module.exports = {};
  */
 util.getBuilderOptions = function(options, prefix) {
     var builderOptions = {};
-    Object.keys(options || {}).forEach(function(key) {
-        if (key.substring(0,prefix.length+1) === prefix+':') {
-            var val = options[key];
-            if (val === 'true')
-                val = true;
-            else if (val === 'false')
-                val = false;
-            else {
-                var intval = parseInt(val, 10);
-                if (intval == val)
-                    val = intval;
-            }
-            builderOptions[key.substring(prefix.length+1)] = val;
+    if (!options[prefix])
+        return builderOptions;
+    var opts = Array.isArray(options[prefix]) ? options[prefix] : [options[prefix]];
+    opts.forEach(function(kv) {
+        var data = kv.split('=');
+        var val = data[1];
+        if (val === 'true')
+            val = true;
+        else if (val === 'false')
+            val = false;
+        else {
+            var intval = parseInt(val, 10);
+            if (intval == val)
+                val = intval;
         }
+        builderOptions[data[0]] = val;
     });
     return builderOptions;
 };

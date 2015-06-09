@@ -23,15 +23,20 @@ var ProtoBuf = require(__dirname+"/../../../index.js"),
  * pbjs source: Plain JSON descriptor
  * @exports pbjs/sources/json
  * @function
- * @param {string} filename Source file
+ * @param {string[]} filenames Source files
  * @param {!Object.<string,*>=} options Options
  * @returns {!ProtoBuf.Builder}
  */
-var json = module.exports = function(filename, options) {
-    options = options || [];
-    var builder = ProtoBuf.newBuilder(util.getBuilderOptions(options, "using")),
-        data = json.load(filename, options);
-    ProtoBuf.loadJson(data, builder, filename);
+var json = module.exports = function(filenames, options) {
+    options = options || {};
+    var builderOptions = util.getBuilderOptions(options, "using");
+    var builder = ProtoBuf.newBuilder(builderOptions);
+    if (builderOptions.importRoot) {
+        builder.importRoot = builderOptions.importRoot;
+    }
+    filenames.forEach(function (filename) {
+        ProtoBuf.loadJsonFile(filename, builder);
+    });
     return builder;
 };
 
@@ -40,33 +45,3 @@ var json = module.exports = function(filename, options) {
  * @type {string}
  */
 json.description = description;
-
-/**
- * Loads a JSON descriptor including imports.
- * @param {string} filename Source file
- * @param {!Object.<string,*>} options Options
- * @returns {*} JSON descriptor
- */
-json.load = function(filename, options) {
-    var data = JSON.parse(fs.readFileSync(filename).toString("utf8")),
-        imports = data['imports'];
-    if (Array.isArray(imports)) {
-        for (var i=0; i<imports.length; ++i) {
-            // Skip pulled imports and legacy descriptors
-            if (typeof imports[i] !== 'string' || (util.isDescriptor(imports[i]) && !options.legacy))
-                continue;
-            // Merge imports, try include paths
-            (function() {
-                var path = options.path || [];
-                for (var j=0; j<path.length; ++j) {
-                    try {
-                        imports[i] = json.load(path[j]+"/"+imports[i], options);
-                        return;
-                    } catch (e) {}
-                }
-                throw Error("File not found: "+imports[i]);
-            })();
-        }
-    }
-    return data;
-};
